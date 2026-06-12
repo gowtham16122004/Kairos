@@ -11,6 +11,8 @@ import notesBg from "../assets/notes background.png";
 import dailyNotesBg from "../assets/daily notes.png";
 // @ts-ignore
 import writeAChronicleImg from "../assets/Write a Chronicle.png";
+// @ts-ignore
+import statueImg from "../assets/CHRONICLES statue.png";
 
 export const Route = createFileRoute("/chronicles")({
   component: ChroniclesPage,
@@ -664,31 +666,39 @@ function ChroniclesPage() {
               background: C.bg, display: "flex", flexDirection: "column"
             }}
           >
-            <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", height: "100%", padding: "24px 20px" }}>
+            <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", height: "100%", padding: "12px 20px 24px" }}>
               
               {/* COMPACT HEADER */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, paddingTop: "env(safe-area-inset-top)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, paddingTop: "env(safe-area-inset-top)" }}>
                 <button onClick={handleDiscard} style={{ background: "transparent", border: "none", color: C.marble, cursor: "pointer", padding: 0, display: "flex" }}>
                   <ChevronLeft size={28} strokeWidth={1.5} />
                 </button>
-                <div style={{ color: C.gold }}>
-                  <LaurelHeaderSvg />
-                </div>
                 <div style={{ width: 28 }} /> {/* Spacer */}
               </div>
 
               {/* TIGHTER HERO SECTION */}
-              <div style={{ textAlign: "center", marginBottom: 20 }}>
-                <h2 style={{ fontFamily: SERIF, fontSize: 36, color: C.marble, fontWeight: 400, margin: "0 0 12px", textShadow: "0 2px 10px rgba(0,0,0,0.5)" }}>
+              <div style={{ textAlign: "center", marginBottom: 16, position: "relative" }}>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 4, position: "relative" }}>
+                  {/* Warm golden glow behind the statue */}
+                  <div style={{ 
+                    position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", 
+                    width: 180, height: 180, background: "radial-gradient(circle, rgba(200,167,106,0.25) 0%, transparent 70%)", 
+                    filter: "blur(24px)", zIndex: 0, pointerEvents: "none" 
+                  }} />
+                  <img 
+                    src={statueImg} 
+                    alt="Chronicles Statue" 
+                    style={{ position: "relative", zIndex: 1, width: 220, height: "auto", filter: "drop-shadow(0 8px 32px rgba(200,167,106,0.5))", opacity: 0.95 }} 
+                    draggable={false} 
+                  />
+                </div>
+                <h2 style={{ fontFamily: SERIF, fontSize: 36, color: C.marble, fontWeight: 400, margin: "0 0 12px", textShadow: "0 2px 10px rgba(0,0,0,0.5)", position: "relative", zIndex: 2 }}>
                   {editingId ? "Edit Chronicle" : "Write a Chronicle"}
                 </h2>
-                <div style={{ display: "flex", justifyContent: "center", marginBottom: 12 }}>
-                  <OrnamentalDividerSvg />
-                </div>
-                <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, color: C.gold, margin: "0 0 8px", lineHeight: 1.4 }}>
+                <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: 18, color: C.gold, margin: "0 0 8px", lineHeight: 1.4, position: "relative", zIndex: 2 }}>
                   "Scribe not for the world,<br/>but for your future self."
                 </p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, position: "relative", zIndex: 2 }}>
                   <span style={{ width: 14, height: 1, background: C.goldDim }} />
                   <span style={{ fontFamily: SANS, fontSize: 9, letterSpacing: "0.2em", color: C.goldDim, textTransform: "uppercase", fontWeight: 500 }}>
                     MARCUS AURELIUS
@@ -728,7 +738,10 @@ function ChroniclesPage() {
                   </label>
                   <div style={{
                     flex: 1, position: "relative",
-                    background: "rgba(10,10,10,0.7)", border: `1px solid ${C.border}`, borderRadius: 16,
+                    backgroundColor: "rgba(10,10,10,0.9)",
+                    backgroundImage: `linear-gradient(rgba(5,5,5,0.7), rgba(5,5,5,0.85)), url("${writeAChronicleImg}")`,
+                    backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat",
+                    border: `1px solid ${C.border}`, borderRadius: 16,
                     boxShadow: "inset 0 2px 20px rgba(0,0,0,0.6)",
                     display: "flex", flexDirection: "column", overflow: "hidden",
                     transition: "all 0.3s"
@@ -746,14 +759,18 @@ function ChroniclesPage() {
                         resize: "none", padding: "16px", zIndex: 2, position: "relative"
                       }}
                     />
-                    {/* Premium Image Watermark (Asset 2) */}
-                    <div style={{ 
-                      position: "absolute", bottom: -20, right: -20, pointerEvents: "none", zIndex: 1, 
-                      width: "45%", height: "45%", opacity: 0.15, mixBlendMode: "screen", 
-                      display: "flex", alignItems: "flex-end", justifyContent: "flex-end", padding: "0" 
-                    }}>
-                      <img src={writeAChronicleImg} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} draggable={false} />
-                    </div>
+                    {/* Custom Statue Decoration */}
+                    <img 
+                      src={statueImg} 
+                      alt="" 
+                      style={{ 
+                        position: "absolute", bottom: 16, right: 16, 
+                        width: 80, height: "auto", opacity: 0.1, 
+                        pointerEvents: "none", zIndex: 1,
+                        filter: "blur(0.5px)" 
+                      }} 
+                      draggable={false} 
+                    />
                   </div>
                 </div>
 
