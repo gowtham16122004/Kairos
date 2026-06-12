@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { MobileTopBar } from "@/components/mobile/MobileTopBar";
 import { BottomNav } from "@/components/mobile/BottomNav";
 import { useBlocks, type BlockDef } from "@/lib/blocks-store";
-import { loadNote } from "./notes";
+
 import currentFocusVideo from "@/assets/Current focus.mp4";
 import quoteSectionImage from "@/assets/quote-bg.png";
 
@@ -98,7 +98,7 @@ function Dashboard() {
   useEffect(() => {
     try { setStreak(parseInt(localStorage.getItem("os_streak") ?? "0", 10) || 0); } catch {}
     try { setDeepSessions(parseInt(localStorage.getItem("dm_cycles_week") ?? "0", 10) || 0); } catch {}
-    try { loadNote(new Date()); } catch {}
+
   }, []);
 
   const dayIndex = Math.floor(now.getTime() / 86400000);

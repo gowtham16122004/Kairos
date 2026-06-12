@@ -1,18 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
+import React from "react";
 
 // Custom Kairos artifact icons — PNG assets
 import homeIcon from "../../assets/Bottom Nav Icon/Home icon.png";
 import focusIcon from "../../assets/Bottom Nav Icon/Focus Icon.png";
 import recoveryIcon from "../../assets/Bottom Nav Icon/Recovery icon.png";
-import analyticsIcon from "../../assets/Bottom Nav Icon/Analytics icon.png";
+import oracleIcon from "../../assets/Bottom Nav Icon/Analytics icon.png";
 import habitIcon from "../../assets/Bottom Nav Icon/Habit icon.png";
+import chroniclesIcon from "../../assets/Bottom Nav Icon/notes icon.png";
 
 const items = [
-  { to: "/",         label: "Home",      icon: homeIcon },
-  { to: "/deep",     label: "Focus",     icon: focusIcon },
-  { to: "/recovery", label: "Recover",   icon: recoveryIcon },
-  { to: "/matrix",   label: "Oracle",    icon: analyticsIcon },
-  { to: "/habits",   label: "Habit",     icon: habitIcon },
+  { to: "/",          label: "Home",       icon: homeIcon },
+  { to: "/deep",      label: "Focus",      icon: focusIcon },
+  { to: "/recovery",  label: "Recovery",   icon: recoveryIcon },
+  { to: "/matrix",    label: "Oracle",     icon: oracleIcon },
+  { to: "/habits",    label: "Habit",      icon: habitIcon },
+  { to: "/chronicles",label: "Chronicles", icon: chroniclesIcon },
 ] as const;
 
 export function BottomNav() {
@@ -36,7 +39,7 @@ export function BottomNav() {
               src={icon}
               alt={label}
               draggable={false}
-              className="kairos-nav-icon"
+              className={`kairos-nav-icon ${to === '/chronicles' ? 'kairos-chronicles-png' : ''}`}
             />
 
             {/* Label — secondary */}
@@ -52,7 +55,7 @@ export function BottomNav() {
           bottom: 0; left: 0; right: 0;
           z-index: 40;
           display: grid;
-          grid-template-columns: repeat(5, 1fr);
+          grid-template-columns: repeat(6, 1fr);
           height: 64px;
           padding: 0;
           background: linear-gradient(180deg, rgba(5,5,5,0.88) 0%, rgba(5,5,5,0.98) 50%);
@@ -137,6 +140,17 @@ export function BottomNav() {
         .kairos-nav-tab:active .kairos-nav-icon {
           transform: scale(0.96) !important;
           transition-duration: 0.08s !important;
+        }
+
+        /* ── Chronicles PNG Special Sizing ── */
+        .kairos-chronicles-png {
+          transform: scale(1.15); /* Slightly enlarge to match visual weight */
+        }
+        .kairos-nav-active .kairos-chronicles-png {
+          transform: scale(1.3);
+        }
+        .kairos-nav-tab:hover .kairos-chronicles-png {
+          transform: scale(1.2) translateY(-1px);
         }
 
         /* ── Label — secondary element ── */

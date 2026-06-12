@@ -11,10 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RecoveryRouteImport } from './routes/recovery'
-import { Route as NotesRouteImport } from './routes/notes'
 import { Route as MatrixRouteImport } from './routes/matrix'
 import { Route as HabitsRouteImport } from './routes/habits'
 import { Route as DeepRouteImport } from './routes/deep'
+import { Route as ChroniclesRouteImport } from './routes/chronicles'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -26,11 +26,6 @@ const SettingsRoute = SettingsRouteImport.update({
 const RecoveryRoute = RecoveryRouteImport.update({
   id: '/recovery',
   path: '/recovery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NotesRoute = NotesRouteImport.update({
-  id: '/notes',
-  path: '/notes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MatrixRoute = MatrixRouteImport.update({
@@ -48,6 +43,11 @@ const DeepRoute = DeepRouteImport.update({
   path: '/deep',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChroniclesRoute = ChroniclesRouteImport.update({
+  id: '/chronicles',
+  path: '/chronicles',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
@@ -62,20 +62,20 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/chronicles': typeof ChroniclesRoute
   '/deep': typeof DeepRoute
   '/habits': typeof HabitsRoute
   '/matrix': typeof MatrixRoute
-  '/notes': typeof NotesRoute
   '/recovery': typeof RecoveryRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/chronicles': typeof ChroniclesRoute
   '/deep': typeof DeepRoute
   '/habits': typeof HabitsRoute
   '/matrix': typeof MatrixRoute
-  '/notes': typeof NotesRoute
   '/recovery': typeof RecoveryRoute
   '/settings': typeof SettingsRoute
 }
@@ -83,10 +83,10 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/chronicles': typeof ChroniclesRoute
   '/deep': typeof DeepRoute
   '/habits': typeof HabitsRoute
   '/matrix': typeof MatrixRoute
-  '/notes': typeof NotesRoute
   '/recovery': typeof RecoveryRoute
   '/settings': typeof SettingsRoute
 }
@@ -95,30 +95,30 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/chronicles'
     | '/deep'
     | '/habits'
     | '/matrix'
-    | '/notes'
     | '/recovery'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$'
+    | '/chronicles'
     | '/deep'
     | '/habits'
     | '/matrix'
-    | '/notes'
     | '/recovery'
     | '/settings'
   id:
     | '__root__'
     | '/'
     | '/$'
+    | '/chronicles'
     | '/deep'
     | '/habits'
     | '/matrix'
-    | '/notes'
     | '/recovery'
     | '/settings'
   fileRoutesById: FileRoutesById
@@ -126,10 +126,10 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  ChroniclesRoute: typeof ChroniclesRoute
   DeepRoute: typeof DeepRoute
   HabitsRoute: typeof HabitsRoute
   MatrixRoute: typeof MatrixRoute
-  NotesRoute: typeof NotesRoute
   RecoveryRoute: typeof RecoveryRoute
   SettingsRoute: typeof SettingsRoute
 }
@@ -148,13 +148,6 @@ declare module '@tanstack/react-router' {
       path: '/recovery'
       fullPath: '/recovery'
       preLoaderRoute: typeof RecoveryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/notes': {
-      id: '/notes'
-      path: '/notes'
-      fullPath: '/notes'
-      preLoaderRoute: typeof NotesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/matrix': {
@@ -178,6 +171,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DeepRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chronicles': {
+      id: '/chronicles'
+      path: '/chronicles'
+      fullPath: '/chronicles'
+      preLoaderRoute: typeof ChroniclesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$': {
       id: '/$'
       path: '/$'
@@ -198,10 +198,10 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  ChroniclesRoute: ChroniclesRoute,
   DeepRoute: DeepRoute,
   HabitsRoute: HabitsRoute,
   MatrixRoute: MatrixRoute,
-  NotesRoute: NotesRoute,
   RecoveryRoute: RecoveryRoute,
   SettingsRoute: SettingsRoute,
 }
