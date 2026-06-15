@@ -218,7 +218,7 @@ function SettingsPage() {
 
         {/* ─── CYCLE OF RESTORATION ─── */}
         <Section title="CYCLE OF RESTORATION" icon={<Moon size={16} color={BRIGHT} />}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="responsive-grid-2col">
             <ConfigInput 
               label="DAWN ASCENSION" 
               type="time" 
@@ -236,7 +236,7 @@ function SettingsPage() {
 
         {/* ─── HOURS OF MASTERY ─── */}
         <Section title="HOURS OF MASTERY" icon={<Sun size={16} color={BRIGHT} />}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="responsive-grid-2col">
             <ConfigInput 
               label="BEGINNING OF FOCUS" 
               type="time" 
@@ -254,7 +254,7 @@ function SettingsPage() {
 
         {/* ─── DISCIPLINE PARAMETERS ─── */}
         <Section title="DISCIPLINE PARAMETERS" icon={<Hourglass size={16} color={BRIGHT} />}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+          <div className="responsive-grid-2col" style={{ marginBottom: 20 }}>
             <ConfigInput 
               label="FOCUS CHAMBER DURATION (MIN)" 
               type="number" 
@@ -366,11 +366,19 @@ function SettingsPage() {
 
         {/* ─── RECORDS OF THE EMPIRE ─── */}
         <Section title="RECORDS OF THE EMPIRE" icon={<Heart size={16} color={BRIGHT} />}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Stat label="Current Streak" value={`${streak}`} />
-            <Stat label="Deep Sessions" value={`${deepCycles}`} />
-            <Stat label="Captured Thoughts" value={`${thoughtCount}`} />
-            <Stat label="Recovery Sessions" value={`${logCount}`} />
+          <div className="responsive-grid-2col" style={{ gap: 12 }}>
+            <Link to="/streak-archives" style={{ textDecoration: 'none' }}>
+              <Stat label="Current Streak" value={`${streak}`} />
+            </Link>
+            <Link to="/chamber-of-focus" style={{ textDecoration: 'none' }}>
+              <Stat label="Deep Sessions" value={`${deepCycles}`} />
+            </Link>
+            <Link to="/archive-of-thought" style={{ textDecoration: 'none' }}>
+              <Stat label="Captured Thoughts" value={`${thoughtCount}`} />
+            </Link>
+            <Link to="/temple-of-recovery" style={{ textDecoration: 'none' }}>
+              <Stat label="Recovery Sessions" value={`${logCount}`} />
+            </Link>
           </div>
         </Section>
 
@@ -578,9 +586,13 @@ function Toggle({ label, sub, on, onChange }: any) {
 
 function Stat({ label, value }: any) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 16px", borderRadius: 12, background: "rgba(20,18,14,0.4)", border: `1px solid ${BORDER}`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)" }}>
+    <motion.div 
+      whileHover={{ scale: 1.02, backgroundColor: "rgba(30,28,24,0.6)", borderColor: GOLD }}
+      whileTap={{ scale: 0.98 }}
+      style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "20px 16px", borderRadius: 12, background: "rgba(20,18,14,0.4)", border: `1px solid ${BORDER}`, boxShadow: "inset 0 1px 0 rgba(255,255,255,0.02)", cursor: "pointer", transition: "background-color 0.2s, border-color 0.2s" }}
+    >
       <span style={{ fontFamily: DISPLAY, fontSize: 8, letterSpacing: "0.15em", color: "rgba(200,167,106,0.7)", textTransform: "uppercase", marginBottom: 8, textAlign: "center" }}>{label}</span>
       <span style={{ fontFamily: DISPLAY, fontSize: 28, color: BRIGHT, textShadow: "0 2px 10px rgba(0,0,0,0.8)" }}>{value}</span>
-    </div>
+    </motion.div>
   );
 }

@@ -14,6 +14,8 @@ export interface Habit {
   customDays?: number[]; // 0..6 if Custom
   difficulty: Difficulty;
   createdAt: number;
+  archived?: boolean;
+  archivedAt?: number;  // timestamp when archived
 }
 
 export interface Completion {
@@ -23,8 +25,16 @@ export interface Completion {
   completedAt: number;
 }
 
+export interface Reflection {
+  habitId: string;
+  date: string;
+  content: string;
+  updatedAt: number;
+}
+
 const HABITS_KEY = "routine-os:habits-v1";
 const COMP_KEY   = "routine-os:habit-completions-v1";
+const REFLECTIONS_KEY = "routine-os:habit-reflections-v1";
 
 export function dayKey(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -37,6 +47,29 @@ export function loadHabits(): Habit[] {
 export function saveHabits(habits: Habit[]) {
   try { localStorage.setItem(HABITS_KEY, JSON.stringify(habits)); } catch {}
   try { window.dispatchEvent(new CustomEvent("habits:changed")); } catch {}
+}
+
+export function updateHabit(id: string, updates: Partial<Habit>) {
+  const habits = loadHabits();
+  const index = habits.findIndex(h => h.id === id);
+  if (index !== -1) {
+    // Auto-manage archivedAt timestamp
+    if (updates.archived === true && !habits[index].archived) {
+      updates.archivedAt = Date.now();
+    } else if (updates.archived === false) {
+      updates.archivedAt = undefined;
+    }
+    habits[index] = { ...habits[index], ...updates };
+    saveHabits(habits);
+  }
+}
+
+export function deleteHabit(id: string) {
+  const habits = loadHabits().filter(h => h.id !== id);
+  saveHabits(habits);
+  
+  const comps = loadCompletions().filter(c => c.habitId !== id);
+  saveCompletions(comps);
 }
 
 export function loadCompletions(): Completion[] {
@@ -111,4 +144,26 @@ export function completionRateForDay(habits: Habit[], comps: Completion[], date:
     else if (s === "partial") score += 0.5;
   }
   return score / scheduled.length;
+}
+
+export function loadReflections(): Reflection[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(REFLECTIONS_KEY) ?? "[]"); } catch { return []; }
+}
+
+export function saveReflections(r: Reflection[]) {
+  try { localStorage.setItem(REFLECTIONS_KEY, JSON.stringify(r)); } catch {}
+  try { window.dispatchEvent(new CustomEvent("reflections:changed")); } catch {}
+}
+
+export function getReflection(habitId: string, date: string): Reflection | undefined {
+  return loadReflections().find(r => r.habitId === habitId && r.date === date);
+}
+
+export function setReflection(habitId: string, date: string, content: string) {
+  const all = loadReflections().filter(r => !(r.habitId === habitId && r.date === date));
+  if (content.trim()) {
+    all.push({ habitId, date, content, updatedAt: Date.now() });
+  }
+  saveReflections(all);
 }

@@ -258,6 +258,16 @@
     color: color-mix(in oklab, var(--foreground) 70%, transparent);
     box-shadow: 0 1px 0 0 color-mix(in oklab, black 40%, transparent);
   }
+  .responsive-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 480px) {
+    .responsive-grid-2col {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
 }
 
 @keyframes floatY {

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { BottomNav } from "@/components/mobile/BottomNav";
@@ -6,6 +6,7 @@ import {
   Habit, HabitCategory, Frequency, Difficulty, CompletionStatus,
   loadHabits, saveHabits, loadCompletions, setStatus, statusOn,
   isScheduled, currentStreak, bestStreak, completionRateForDay, dayKey,
+  updateHabit, deleteHabit
 } from "@/lib/habits-store";
 import heroImage from "@/assets/Habit tracker.png";
 
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/habits")({
 
 // ─── PREMIUM ICONS ──────────────────────────────────────────────────────────
 
-const ICONS = [
+export const ICONS = [
   { key: "vitality", label: "Vitality", svg: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"><path d="M8 10c0-4 4-8 4-8s4 4 4 8c0 3-2 5-4 5s-4-2-4-5z"/><path d="M10 15v7h4v-7"/></svg> },
   { key: "wisdom", label: "Wisdom", svg: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 4c-4 0-8 2-8 6 0 4 3 6 4 9h8c1-3 4-5 4-9 0-4-4-6-8-6z"/><path d="M9 19v3h6v-3"/></svg> },
   { key: "mastery", label: "Mastery", svg: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v20M2 12h20M4.9 4.9l14.2 14.2M4.9 19.1l14.2-14.2"/></svg> },
@@ -33,7 +34,7 @@ const ICONS = [
   { key: "sleep", label: "Sleep", svg: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></svg> },
   { key: "legacy", label: "Legacy", svg: <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> },
 ];
-const ICON_MAP = Object.fromEntries(ICONS.map(i => [i.key, i.svg]));
+export const ICON_MAP = Object.fromEntries(ICONS.map(i => [i.key, i.svg]));
 
 const CATEGORIES: HabitCategory[] = ["Vitality", "Wisdom", "Mastery", "Character", "Legacy"];
 const FREQS: Frequency[]   = ["Daily", "Weekdays", "Weekends", "Custom"];
@@ -60,8 +61,16 @@ function AscensionPage() {
   const [today]             = useState(() => new Date());
   const [viewDate, setViewDate] = useState<string>(dayKey(new Date()));
   const [sheetOpen, setSheetOpen] = useState(false);
+  const navigate = useNavigate();
+  const [editHabit, setEditHabit] = useState<Habit | null>(null);
+  const [actionHabit, setActionHabit] = useState<Habit | null>(null);
+  const [confirmDeleteHabit, setConfirmDeleteHabit] = useState<Habit | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [toast, setToast] = useState<{ habitName: string; streak: number } | null>(null);
+  
+  const activeHabits = useMemo(() => habits.filter(h => !h.archived), [habits]);
+  const archivedHabits = useMemo(() => habits.filter(h => h.archived), [habits]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll({ container: containerRef });
@@ -81,8 +90,8 @@ function AscensionPage() {
   const isToday = viewDate === todayKey;
 
   const scheduledToday = useMemo(
-    () => habits.filter(h => isScheduled(h, new Date(viewDate + "T00:00:00"))),
-    [habits, viewDate]
+    () => activeHabits.filter(h => isScheduled(h, new Date(viewDate + "T00:00:00"))),
+    [activeHabits, viewDate]
   );
 
   const doneCount = scheduledToday.filter(h => statusOn(comps, h.id, viewDate) === "done").length;
@@ -112,7 +121,7 @@ function AscensionPage() {
     return streak;
   }, [comps, today]);
   
-  const bestOverall = useMemo(() => Math.max(0, ...habits.map(h => bestStreak(comps, h.id))), [habits, comps]);
+  const bestOverall = useMemo(() => activeHabits.length > 0 ? Math.max(0, ...activeHabits.map(h => bestStreak(comps, h.id))) : 0, [activeHabits, comps]);
 
   const weekDays = useMemo(() => {
     const arr: { date: Date; key: string; letter: string; rate: number }[] = [];
@@ -122,31 +131,48 @@ function AscensionPage() {
       arr.push({
         date: d, key: k,
         letter: d.toLocaleDateString(undefined, { weekday: "narrow" }).toUpperCase(),
-        rate: completionRateForDay(habits, comps, k),
+        rate: completionRateForDay(activeHabits, comps, k),
       });
     }
     return arr;
-  }, [habits, comps, today]);
+  }, [activeHabits, comps, today]);
 
   const monthDots = useMemo(() => {
     const arr: { key: string; rate: number }[] = [];
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today); d.setDate(d.getDate() - i);
       const k = dayKey(d);
-      arr.push({ key: k, rate: completionRateForDay(habits, comps, k) });
+      arr.push({ key: k, rate: completionRateForDay(activeHabits, comps, k) });
     }
     return arr;
-  }, [habits, comps, today]);
+  }, [activeHabits, comps, today]);
 
-  const habitStats = useMemo(() => habits.map(h => {
+  const habitStats = useMemo(() => activeHabits.map(h => {
     const last30 = monthDots.map(d => statusOn(comps, h.id, d.key));
     const done = last30.filter(s => s === "done").length;
     return { habit: h, done, rate: done / 30, streak: currentStreak(comps, h.id, today), max: bestStreak(comps, h.id) };
-  }), [habits, comps, monthDots, today]);
+  }), [activeHabits, comps, monthDots, today]);
 
   const bestHabit = useMemo(() => [...habitStats].sort((a,b) => b.rate - a.rate)[0], [habitStats]);
 
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressing = useRef(false);
+
+  const handlePointerDown = (h: Habit) => {
+    isLongPressing.current = false;
+    longPressTimer.current = setTimeout(() => {
+      isLongPressing.current = true;
+      setActionHabit(h);
+      if ("vibrate" in navigator) try { navigator.vibrate(20); } catch {}
+    }, 500);
+  };
+
+  const handlePointerUp = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
   function cycleStatus(h: Habit) {
+    if (isLongPressing.current) return;
     if (!isToday) return;
     const cur = statusOn(comps, h.id, viewDate);
     const next = nextStatus(cur);
@@ -156,6 +182,10 @@ function AscensionPage() {
       setPulseId(h.id);
       setTimeout(() => setPulseId(null), 600);
       if ("vibrate" in navigator) try { navigator.vibrate(15); } catch {}
+      // Show premium toast
+      const streak = currentStreak(updated, h.id, today);
+      setToast({ habitName: h.name, streak });
+      setTimeout(() => setToast(null), 2800);
     }
   }
 
@@ -311,7 +341,7 @@ function AscensionPage() {
 
         {/* ── DISCIPLINE PILLARS ── */}
         <SectionDivider title="DISCIPLINE PILLARS" />
-        {!mounted ? null : habits.length === 0 ? (
+        {!mounted ? null : activeHabits.length === 0 ? (
           <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} style={{ textAlign: "center", padding: "50px 20px", background: MARBLE, borderRadius: 16, border: `1px solid ${BORDER}`, boxShadow: "inset 0 2px 10px rgba(0,0,0,0.5)", marginBottom: 40 }}>
             <svg width={48} height={48} viewBox="0 0 24 24" fill="none" stroke="rgba(220,185,110,0.6)" strokeWidth={1} style={{ filter: "drop-shadow(0 0 10px rgba(220,185,110,0.2))", marginBottom: 16 }}>
               <path d="M4 22h16M4 2h16M6 2v20M10 2v20M14 2v20M18 2v20" strokeLinecap="round" />
@@ -343,13 +373,20 @@ function AscensionPage() {
                     borderRadius: 16,
                     boxShadow: isDone ? `0 4px 20px rgba(220,185,110,0.15), inset 0 1px 0 rgba(220,185,110,0.2)` : "0 4px 15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)",
                     overflow: "hidden", cursor: isToday ? "pointer" : "default",
-                    position: "relative"
+                    position: "relative",
+                    userSelect: "none", WebkitUserSelect: "none",
                   }}
-                  onClick={() => isToday && cycleStatus(h)}
+                  onClick={() => cycleStatus(h)}
+                  onPointerDown={() => handlePointerDown(h)}
+                  onPointerUp={handlePointerUp}
+                  onPointerLeave={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
                 >
                   {isDone && <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: 4, background: BRIGHT, boxShadow: `0 0 10px ${BRIGHT}` }} />}
                   {/* Left Icon Panel */}
-                  <div style={{ width: 72, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.4)", borderRight: `1px solid ${BORDER}` }}>
+                  <div 
+                    style={{ width: 72, display: "grid", placeItems: "center", background: "rgba(0,0,0,0.4)", borderRight: `1px solid ${BORDER}` }}
+                  >
                     <div style={{ width: 44, height: 44, borderRadius: "50%", border: `1px solid ${isDone ? BRIGHT : "rgba(200,167,106,0.4)"}`, display: "grid", placeItems: "center", color: isDone ? BRIGHT : GOLD, boxShadow: isDone ? `0 0 15px rgba(220,185,110,0.3)` : "inset 0 2px 4px rgba(0,0,0,0.5)", transition: "all 0.3s" }}>
                       <div style={{ width: 22, height: 22 }}>{iconSvg}</div>
                     </div>
@@ -367,7 +404,15 @@ function AscensionPage() {
                     </div>
                   </div>
                   {/* Right Streak Panel */}
-                  <div style={{ padding: "16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderLeft: `1px solid ${BORDER}`, background: "rgba(0,0,0,0.2)" }}>
+                  <div style={{ padding: "16px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", borderLeft: `1px solid ${BORDER}`, background: "rgba(0,0,0,0.2)", position: "relative" }}>
+                    {/* Three-dot menu indicator */}
+                    <div style={{ position: "absolute", top: 8, right: 8 }}>
+                      <svg width={14} height={14} viewBox="0 0 24 24" fill="rgba(200,167,106,0.4)">
+                        <circle cx="12" cy="5" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="12" cy="19" r="2" />
+                      </svg>
+                    </div>
                     <div style={{ fontFamily: DISPLAY, fontSize: 24, color: BRIGHT, textShadow: `0 0 10px rgba(220,185,110,0.4)` }}>{streak}</div>
                     <div style={{ fontSize: 8, letterSpacing: "0.15em", color: "rgba(200,167,106,0.6)", textTransform: "uppercase" }}>Streak</div>
                   </div>
@@ -404,6 +449,11 @@ function AscensionPage() {
             </svg>
             FORGE NEW PILLAR
           </button>
+          {activeHabits.length > 0 && (
+            <div style={{ marginTop: 16, fontSize: 11, fontFamily: DISPLAY, fontStyle: "italic", color: "rgba(200,167,106,0.6)", letterSpacing: "0.05em" }}>
+              Long press a pillar to manage it.
+            </div>
+          )}
           <style>{`
             @keyframes sweep { 0% { left: -100%; } 50% { left: 200%; } 100% { left: 200%; } }
             .forge-btn-main:hover { border-color: #fff !important; box-shadow: 0 10px 40px rgba(0,0,0,0.9), 0 0 30px rgba(220,185,110,0.4), inset 0 2px 5px rgba(255,255,255,0.2) !important; text-shadow: 0 0 10px rgba(220,185,110,0.8); }
@@ -478,6 +528,55 @@ function AscensionPage() {
           <Relic icon="🏛️" days={365} title="Immortal Pillar" achieved={overallStreak >= 365} />
         </div>
 
+        {/* ── ARCHIVED PILLARS ── */}
+        {archivedHabits.length > 0 && (
+          <div style={{ marginBottom: 50 }}>
+            <SectionDivider title="ARCHIVED PILLARS" />
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {archivedHabits.map(h => {
+                const iconSvg = ICON_MAP[h.icon] || ICON_MAP.mastery;
+                const archiveDate = h.archivedAt ? new Date(h.archivedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unknown';
+                const prevStreak = bestStreak(comps, h.id);
+                return (
+                  <motion.div key={h.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{
+                    background: MARBLE, border: `1px solid ${BORDER}`, borderRadius: 16,
+                    overflow: "hidden", boxShadow: "0 4px 15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.03)"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", padding: "18px 16px", gap: 14 }}>
+                      {/* Icon */}
+                      <div style={{ width: 44, height: 44, borderRadius: "50%", border: `1px solid rgba(200,167,106,0.3)`, display: "grid", placeItems: "center", color: "rgba(200,167,106,0.5)", background: "rgba(10,8,6,0.6)", flexShrink: 0, boxShadow: "inset 0 2px 4px rgba(0,0,0,0.5)" }}>
+                        <div style={{ width: 22, height: 22, opacity: 0.6 }}>{iconSvg}</div>
+                      </div>
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: UI, fontSize: 15, color: "rgba(220,205,175,0.85)", marginBottom: 4 }}>{h.name}</div>
+                        <div style={{ fontSize: 9, letterSpacing: "0.2em", color: "rgba(200,167,106,0.5)", textTransform: "uppercase", marginBottom: 4 }}>{h.category}</div>
+                        <div style={{ fontSize: 10, color: "rgba(160,150,130,0.5)" }}>Archived on {archiveDate}</div>
+                      </div>
+                      {/* Streak */}
+                      <div style={{ textAlign: "center", flexShrink: 0 }}>
+                        <div style={{ fontFamily: DISPLAY, fontSize: 20, color: "rgba(200,167,106,0.6)" }}>{prevStreak}d</div>
+                        <div style={{ fontSize: 7, letterSpacing: "0.15em", color: "rgba(160,150,130,0.4)", textTransform: "uppercase" }}>Longest Streak</div>
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div style={{ display: "flex", borderTop: `1px solid ${BORDER}` }}>
+                      <button onClick={() => updateHabit(h.id, { archived: false })} style={{ flex: 1, padding: "12px", background: "transparent", color: BRIGHT, fontSize: 12, fontFamily: DISPLAY, letterSpacing: "0.1em", border: "none", cursor: "pointer", borderRight: `1px solid ${BORDER}`, transition: "background 0.2s" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(200,167,106,0.08)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >Restore</button>
+                      <button onClick={() => { setConfirmDeleteHabit(h); }} style={{ flex: 1, padding: "12px", background: "transparent", color: "rgba(255,100,100,0.7)", fontSize: 12, fontFamily: DISPLAY, letterSpacing: "0.1em", border: "none", cursor: "pointer", transition: "background 0.2s" }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,74,74,0.06)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                      >Delete</button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
         <div style={{ textAlign: "center", padding: "30px 0 50px", borderTop: `1px solid ${BORDER}` }}>
           <div style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: 16, color: "rgba(220,205,175,0.8)", textShadow: "0 0 10px rgba(0,0,0,0.5)" }}>
@@ -490,6 +589,48 @@ function AscensionPage() {
       </motion.main>
 
       <BottomNav />
+
+      {/* ── PREMIUM TOAST NOTIFICATION ── */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            style={{
+              position: "fixed", top: 24, left: "50%", transform: "translateX(-50%)",
+              zIndex: 200, display: "flex", alignItems: "center", gap: 14,
+              background: "linear-gradient(145deg, rgba(16,14,10,0.95), rgba(8,6,4,0.98))",
+              border: `1px solid ${GOLD}`,
+              borderRadius: 16, padding: "14px 24px",
+              backdropFilter: "blur(20px)",
+              boxShadow: `0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(220,185,110,0.15), inset 0 1px 0 rgba(255,255,255,0.08)`,
+              minWidth: 240, maxWidth: "calc(100vw - 40px)"
+            }}
+          >
+            {/* Check icon */}
+            <div style={{ width: 36, height: 36, borderRadius: "50%", border: `1px solid ${BRIGHT}`, display: "grid", placeItems: "center", flexShrink: 0, boxShadow: `0 0 15px rgba(220,185,110,0.25)`, background: "rgba(220,185,110,0.08)" }}>
+              <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={BRIGHT} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </div>
+            <div>
+              <div style={{ fontFamily: DISPLAY, fontSize: 14, color: BRIGHT, letterSpacing: "0.05em", marginBottom: 3 }}>
+                Discipline recorded.
+              </div>
+              <div style={{ fontSize: 11, color: "rgba(200,167,106,0.7)", fontFamily: UI }}>
+                Streak: {toast.streak} {toast.streak === 1 ? 'Day' : 'Days'}
+              </div>
+            </div>
+            {/* Sweep animation */}
+            <motion.div
+              initial={{ x: "-100%" }} animate={{ x: "200%" }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "linear-gradient(90deg, transparent, rgba(220,185,110,0.08), transparent)", pointerEvents: "none", borderRadius: 16 }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── SUCCESS OVERLAY ── */}
       <AnimatePresence>
@@ -531,10 +672,127 @@ function AscensionPage() {
         )}
       </AnimatePresence>
 
+      {/* ── PILLAR ACTIONS SHEET ── */}
+      <AnimatePresence>
+        {actionHabit && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActionHabit(null)} style={{ position: "absolute", inset: 0, background: "rgba(4,5,8,0.85)", backdropFilter: "blur(4px)" }} />
+            <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: "spring", stiffness: 300, damping: 30 }} style={{ position: "relative", background: MARBLE, borderTop: `1px solid ${GOLD}`, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: "24px 16px calc(24px + env(safe-area-inset-bottom, 0px))", boxShadow: "0 -10px 40px rgba(0,0,0,0.8)" }}>
+              {/* Handle bar */}
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <div style={{ width: 40, height: 4, background: "rgba(200,167,106,0.3)", borderRadius: 2, margin: "0 auto 16px" }} />
+                <div style={{ fontSize: 10, letterSpacing: "0.25em", color: "rgba(200,167,106,0.5)", marginBottom: 8, textTransform: "uppercase" }}>PILLAR ACTIONS</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, marginTop: 4 }}>
+                  <div style={{ height: 1, width: 30, background: "linear-gradient(to right, transparent, rgba(220,185,110,0.3))" }} />
+                  <svg width={12} height={8} viewBox="0 0 12 8" fill="none">
+                    <path d="M1 4L6 1L11 4" stroke={BRIGHT} strokeWidth={0.8} />
+                    <path d="M1 4L6 7L11 4" stroke={BRIGHT} strokeWidth={0.8} />
+                  </svg>
+                  <div style={{ height: 1, width: 30, background: "linear-gradient(to left, transparent, rgba(220,185,110,0.3))" }} />
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <ActionBtn 
+                  icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>}
+                  label="View Details" 
+                  description="Explore your discipline journey"
+                  onClick={() => { navigate({ to: '/habits/$habitId', params: { habitId: actionHabit.id } }); setActionHabit(null); }} 
+                />
+                <ActionBtn 
+                  icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" /></svg>}
+                  label="Edit Pillar" 
+                  description="Modify your pillar details"
+                  onClick={() => { setEditHabit(actionHabit); setActionHabit(null); }} 
+                />
+                <ActionBtn 
+                  icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>}
+                  label="Archive Pillar" 
+                  description="Archive and hide from active pillars"
+                  onClick={() => { updateHabit(actionHabit.id, { archived: true }); setActionHabit(null); if ("vibrate" in navigator) try { navigator.vibrate(10); } catch {} }} 
+                />
+                <ActionBtn 
+                  icon={<svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>}
+                  label="Delete Pillar" 
+                  description="Permanently delete this pillar"
+                  danger 
+                  onClick={() => { setConfirmDeleteHabit(actionHabit); setActionHabit(null); }} 
+                />
+              </div>
+              {/* Cancel */}
+              <button 
+                onClick={() => setActionHabit(null)} 
+                style={{ 
+                  width: "100%", padding: 16, marginTop: 12,
+                  background: "transparent", border: `1px solid ${BORDER}`, borderRadius: 12,
+                  color: "rgba(200,167,106,0.7)", fontFamily: DISPLAY, fontSize: 14, 
+                  letterSpacing: "0.1em", cursor: "pointer", transition: "all 0.2s"
+                }}
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── DELETE CONFIRMATION MODAL ── */}
+      <AnimatePresence>
+        {confirmDeleteHabit && (
+          <div style={{ position: "fixed", inset: 0, zIndex: 70, display: "grid", placeItems: "center", padding: 20 }}>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setConfirmDeleteHabit(null)} style={{ position: "absolute", inset: 0, background: "rgba(4,5,8,0.9)", backdropFilter: "blur(8px)" }} />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ position: "relative", width: "100%", maxWidth: 320, background: "linear-gradient(145deg, rgba(30,10,10,0.95), rgba(15,5,5,0.98))", border: "1px solid rgba(255,74,74,0.3)", borderRadius: 20, padding: 28, boxShadow: "0 20px 40px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05)", textAlign: "center" }}>
+              <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(255,74,74,0.08)", border: "1px solid rgba(255,74,74,0.2)", display: "grid", placeItems: "center", margin: "0 auto 20px", boxShadow: "0 0 20px rgba(255,74,74,0.1)" }}>
+                <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="#ff6b6b" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /><path d="M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+              </div>
+              <h4 style={{ fontFamily: DISPLAY, fontSize: 22, color: "rgba(255,220,220,0.95)", margin: "0 0 10px", letterSpacing: "0.05em" }}>Delete Pillar?</h4>
+              <p style={{ fontSize: 13, color: "rgba(255,200,200,0.6)", margin: "0 0 28px", lineHeight: 1.5 }}>
+                Deleting this pillar will permanently erase its progress, streak history, and all records.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <button onClick={() => { deleteHabit(confirmDeleteHabit.id); setConfirmDeleteHabit(null); if ("vibrate" in navigator) try { navigator.vibrate(20); } catch {} }} style={{ width: "100%", padding: 16, borderRadius: 12, background: "rgba(255,74,74,0.12)", color: "#ff6b6b", border: "1px solid rgba(255,74,74,0.35)", fontFamily: DISPLAY, fontSize: 15, letterSpacing: "0.08em", cursor: "pointer", transition: "all 0.2s" }}>
+                  Delete Permanently
+                </button>
+                <button onClick={() => setConfirmDeleteHabit(null)} style={{ width: "100%", padding: 16, borderRadius: 12, background: "rgba(200,167,106,0.08)", color: BRIGHT, border: `1px solid rgba(200,167,106,0.25)`, fontFamily: DISPLAY, fontSize: 15, letterSpacing: "0.08em", cursor: "pointer", transition: "all 0.2s" }}>
+                  Keep Pillar
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* ── FORGE MODAL WRAPPED SAFE ── */}
       <AddPillarSheet isOpen={sheetOpen} onClose={() => setSheetOpen(false)} onSave={addHabit} />
+      {editHabit && (
+        <AddPillarSheet 
+          isOpen={!!editHabit} 
+          onClose={() => setEditHabit(null)} 
+          onSave={(data) => {
+            updateHabit(editHabit.id, data);
+            setEditHabit(null);
+            if ("vibrate" in navigator) try { navigator.vibrate([15, 60, 15]); } catch {}
+          }} 
+          initialHabit={editHabit} 
+        />
+      )}
 
     </div>
+  );
+}
+
+function ActionBtn({ icon, label, description, onClick, danger }: { icon: React.ReactNode, label: string, description?: string, onClick: () => void, danger?: boolean }) {
+  return (
+    <motion.button whileTap={{ scale: 0.98 }} onClick={onClick} style={{ width: "100%", display: "flex", alignItems: "center", gap: 16, padding: "16px 20px", background: danger ? "rgba(255,74,74,0.06)" : "rgba(10,8,6,0.5)", border: `1px solid ${danger ? "rgba(255,74,74,0.15)" : BORDER}`, borderRadius: 14, color: danger ? "#ff6b6b" : "rgba(255,250,240,0.9)", fontSize: 15, fontFamily: UI, cursor: "pointer", textAlign: "left", transition: "background 0.2s" }}>
+      <div style={{ width: 40, height: 40, borderRadius: 10, background: danger ? "rgba(255,74,74,0.08)" : "rgba(200,167,106,0.06)", border: `1px solid ${danger ? "rgba(255,74,74,0.15)" : "rgba(200,167,106,0.15)"}`, display: "grid", placeItems: "center", flexShrink: 0, color: danger ? "#ff6b6b" : GOLD }}>
+        {icon}
+      </div>
+      <div>
+        <div>{label}</div>
+        {description && <div style={{ fontSize: 11, color: danger ? "rgba(255,150,150,0.5)" : "rgba(200,167,106,0.5)", marginTop: 2 }}>{description}</div>}
+      </div>
+    </motion.button>
   );
 }
 
@@ -573,7 +831,7 @@ function Relic({ icon, days, title, achieved }: { icon: string; days: number; ti
 
 // ─── PREMIUM FORGE PILLAR MODAL ───────────────────────────────────────────────────────
 
-function AddPillarSheet({ isOpen, onClose, onSave }: { isOpen: boolean; onClose: () => void; onSave: (h: Omit<Habit, "id" | "createdAt" | "color">) => void; }) {
+function AddPillarSheet({ isOpen, onClose, onSave, initialHabit }: { isOpen: boolean; onClose: () => void; onSave: (h: Omit<Habit, "id" | "createdAt" | "color">) => void; initialHabit?: Habit | null; }) {
   const [name, setName] = useState("");
   const [icon, setIcon] = useState(ICONS[0].key);
   const [category, setCategory] = useState<HabitCategory>("Vitality");
@@ -581,6 +839,17 @@ function AddPillarSheet({ isOpen, onClose, onSave }: { isOpen: boolean; onClose:
   const [difficulty, setDifficulty] = useState<Difficulty>("Initiate");
   const [purpose, setPurpose] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setName(initialHabit?.name || "");
+      setIcon(initialHabit?.icon || ICONS[0].key);
+      setCategory(initialHabit?.category || "Vitality");
+      setFrequency(initialHabit?.frequency || "Daily");
+      setDifficulty(initialHabit?.difficulty || "Initiate");
+      setError("");
+    }
+  }, [isOpen, initialHabit]);
 
   const handleForge = () => {
     if (!name.trim()) {
@@ -615,8 +884,8 @@ function AddPillarSheet({ isOpen, onClose, onSave }: { isOpen: boolean; onClose:
             <div style={{ textAlign: "center", marginBottom: 36, position: "relative" }}>
               <button onClick={onClose} style={{ position: "absolute", right: 0, top: -8, background: "rgba(20,16,10,0.8)", border: `1px solid ${BORDER}`, borderRadius: "50%", width: 36, height: 36, color: BRIGHT, cursor: "pointer", display: "grid", placeItems: "center", transition: "all 0.2s", boxShadow: "0 4px 10px rgba(0,0,0,0.5)" }}>✕</button>
               
-              <h3 style={{ fontFamily: DISPLAY, fontWeight: 300, fontSize: 26, margin: "0 0 10px", color: BRIGHT, letterSpacing: "0.15em", textShadow: "0 2px 10px rgba(0,0,0,0.8)" }}>FORGE NEW PILLAR</h3>
-              <p style={{ fontFamily: DISPLAY, fontSize: 13, color: "rgba(200,167,106,0.7)", fontStyle: "italic", margin: 0 }}>Create a discipline that shapes your future.</p>
+              <h3 style={{ fontFamily: DISPLAY, fontWeight: 300, fontSize: 26, margin: "0 0 10px", color: BRIGHT, letterSpacing: "0.15em", textShadow: "0 2px 10px rgba(0,0,0,0.8)" }}>{initialHabit ? "EDIT PILLAR" : "FORGE NEW PILLAR"}</h3>
+              <p style={{ fontFamily: DISPLAY, fontSize: 13, color: "rgba(200,167,106,0.7)", fontStyle: "italic", margin: 0 }}>{initialHabit ? "Modify the structure of this discipline." : "Create a discipline that shapes your future."}</p>
               
               {/* Ornamental Divider */}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 18 }}>
@@ -787,7 +1056,7 @@ function AddPillarSheet({ isOpen, onClose, onSave }: { isOpen: boolean; onClose:
               <svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round">
                 <path d="M3 10L12 4L21 10M5 10v10M9 10v10M15 10v10M19 10v10M3 20h18" />
               </svg>
-              FORGE PILLAR
+              {initialHabit ? "SAVE CHANGES" : "FORGE PILLAR"}
             </button>
             <style>{`
               .forge-submit-btn:hover { border-color: #fff !important; box-shadow: 0 0 50px rgba(220,185,110,0.4), inset 0 2px 10px rgba(255,255,255,0.15) !important; text-shadow: 0 0 10px rgba(220,185,110,0.8); }

@@ -9,15 +9,30 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TempleOfRecoveryRouteImport } from './routes/temple-of-recovery'
+import { Route as StreakArchivesRouteImport } from './routes/streak-archives'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RecoveryRouteImport } from './routes/recovery'
 import { Route as MatrixRouteImport } from './routes/matrix'
 import { Route as HabitsRouteImport } from './routes/habits'
 import { Route as DeepRouteImport } from './routes/deep'
 import { Route as ChroniclesRouteImport } from './routes/chronicles'
+import { Route as ChamberOfFocusRouteImport } from './routes/chamber-of-focus'
+import { Route as ArchiveOfThoughtRouteImport } from './routes/archive-of-thought'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as HabitsHabitIdRouteImport } from './routes/habits.$habitId'
 
+const TempleOfRecoveryRoute = TempleOfRecoveryRouteImport.update({
+  id: '/temple-of-recovery',
+  path: '/temple-of-recovery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StreakArchivesRoute = StreakArchivesRouteImport.update({
+  id: '/streak-archives',
+  path: '/streak-archives',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -48,6 +63,16 @@ const ChroniclesRoute = ChroniclesRouteImport.update({
   path: '/chronicles',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ChamberOfFocusRoute = ChamberOfFocusRouteImport.update({
+  id: '/chamber-of-focus',
+  path: '/chamber-of-focus',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArchiveOfThoughtRoute = ArchiveOfThoughtRouteImport.update({
+  id: '/archive-of-thought',
+  path: '/archive-of-thought',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
@@ -58,84 +83,137 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HabitsHabitIdRoute = HabitsHabitIdRouteImport.update({
+  id: '/$habitId',
+  path: '/$habitId',
+  getParentRoute: () => HabitsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/archive-of-thought': typeof ArchiveOfThoughtRoute
+  '/chamber-of-focus': typeof ChamberOfFocusRoute
   '/chronicles': typeof ChroniclesRoute
   '/deep': typeof DeepRoute
-  '/habits': typeof HabitsRoute
+  '/habits': typeof HabitsRouteWithChildren
   '/matrix': typeof MatrixRoute
   '/recovery': typeof RecoveryRoute
   '/settings': typeof SettingsRoute
+  '/streak-archives': typeof StreakArchivesRoute
+  '/temple-of-recovery': typeof TempleOfRecoveryRoute
+  '/habits/$habitId': typeof HabitsHabitIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/archive-of-thought': typeof ArchiveOfThoughtRoute
+  '/chamber-of-focus': typeof ChamberOfFocusRoute
   '/chronicles': typeof ChroniclesRoute
   '/deep': typeof DeepRoute
-  '/habits': typeof HabitsRoute
+  '/habits': typeof HabitsRouteWithChildren
   '/matrix': typeof MatrixRoute
   '/recovery': typeof RecoveryRoute
   '/settings': typeof SettingsRoute
+  '/streak-archives': typeof StreakArchivesRoute
+  '/temple-of-recovery': typeof TempleOfRecoveryRoute
+  '/habits/$habitId': typeof HabitsHabitIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/archive-of-thought': typeof ArchiveOfThoughtRoute
+  '/chamber-of-focus': typeof ChamberOfFocusRoute
   '/chronicles': typeof ChroniclesRoute
   '/deep': typeof DeepRoute
-  '/habits': typeof HabitsRoute
+  '/habits': typeof HabitsRouteWithChildren
   '/matrix': typeof MatrixRoute
   '/recovery': typeof RecoveryRoute
   '/settings': typeof SettingsRoute
+  '/streak-archives': typeof StreakArchivesRoute
+  '/temple-of-recovery': typeof TempleOfRecoveryRoute
+  '/habits/$habitId': typeof HabitsHabitIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/$'
+    | '/archive-of-thought'
+    | '/chamber-of-focus'
     | '/chronicles'
     | '/deep'
     | '/habits'
     | '/matrix'
     | '/recovery'
     | '/settings'
+    | '/streak-archives'
+    | '/temple-of-recovery'
+    | '/habits/$habitId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$'
+    | '/archive-of-thought'
+    | '/chamber-of-focus'
     | '/chronicles'
     | '/deep'
     | '/habits'
     | '/matrix'
     | '/recovery'
     | '/settings'
+    | '/streak-archives'
+    | '/temple-of-recovery'
+    | '/habits/$habitId'
   id:
     | '__root__'
     | '/'
     | '/$'
+    | '/archive-of-thought'
+    | '/chamber-of-focus'
     | '/chronicles'
     | '/deep'
     | '/habits'
     | '/matrix'
     | '/recovery'
     | '/settings'
+    | '/streak-archives'
+    | '/temple-of-recovery'
+    | '/habits/$habitId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  ArchiveOfThoughtRoute: typeof ArchiveOfThoughtRoute
+  ChamberOfFocusRoute: typeof ChamberOfFocusRoute
   ChroniclesRoute: typeof ChroniclesRoute
   DeepRoute: typeof DeepRoute
-  HabitsRoute: typeof HabitsRoute
+  HabitsRoute: typeof HabitsRouteWithChildren
   MatrixRoute: typeof MatrixRoute
   RecoveryRoute: typeof RecoveryRoute
   SettingsRoute: typeof SettingsRoute
+  StreakArchivesRoute: typeof StreakArchivesRoute
+  TempleOfRecoveryRoute: typeof TempleOfRecoveryRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/temple-of-recovery': {
+      id: '/temple-of-recovery'
+      path: '/temple-of-recovery'
+      fullPath: '/temple-of-recovery'
+      preLoaderRoute: typeof TempleOfRecoveryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/streak-archives': {
+      id: '/streak-archives'
+      path: '/streak-archives'
+      fullPath: '/streak-archives'
+      preLoaderRoute: typeof StreakArchivesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/settings': {
       id: '/settings'
       path: '/settings'
@@ -178,6 +256,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChroniclesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/chamber-of-focus': {
+      id: '/chamber-of-focus'
+      path: '/chamber-of-focus'
+      fullPath: '/chamber-of-focus'
+      preLoaderRoute: typeof ChamberOfFocusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive-of-thought': {
+      id: '/archive-of-thought'
+      path: '/archive-of-thought'
+      fullPath: '/archive-of-thought'
+      preLoaderRoute: typeof ArchiveOfThoughtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/$': {
       id: '/$'
       path: '/$'
@@ -192,18 +284,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/habits/$habitId': {
+      id: '/habits/$habitId'
+      path: '/$habitId'
+      fullPath: '/habits/$habitId'
+      preLoaderRoute: typeof HabitsHabitIdRouteImport
+      parentRoute: typeof HabitsRoute
+    }
   }
 }
+
+interface HabitsRouteChildren {
+  HabitsHabitIdRoute: typeof HabitsHabitIdRoute
+}
+
+const HabitsRouteChildren: HabitsRouteChildren = {
+  HabitsHabitIdRoute: HabitsHabitIdRoute,
+}
+
+const HabitsRouteWithChildren =
+  HabitsRoute._addFileChildren(HabitsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  ArchiveOfThoughtRoute: ArchiveOfThoughtRoute,
+  ChamberOfFocusRoute: ChamberOfFocusRoute,
   ChroniclesRoute: ChroniclesRoute,
   DeepRoute: DeepRoute,
-  HabitsRoute: HabitsRoute,
+  HabitsRoute: HabitsRouteWithChildren,
   MatrixRoute: MatrixRoute,
   RecoveryRoute: RecoveryRoute,
   SettingsRoute: SettingsRoute,
+  StreakArchivesRoute: StreakArchivesRoute,
+  TempleOfRecoveryRoute: TempleOfRecoveryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

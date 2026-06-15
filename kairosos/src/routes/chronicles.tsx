@@ -16,6 +16,11 @@ import statueImg from "../assets/CHRONICLES statue.png";
 
 export const Route = createFileRoute("/chronicles")({
   component: ChroniclesPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      viewingId: search.viewingId as string | undefined,
+    }
+  },
   head: () => ({
     meta: [
       { title: "The Chronicles — KairosOS" },
@@ -94,7 +99,8 @@ function ChroniclesPage() {
   const [draftSaved, setDraftSaved] = useState(false);
 
   // Detail View State
-  const [viewingId, setViewingId] = useState<string | null>(null);
+  const search = Route.useSearch();
+  const [viewingId, setViewingId] = useState<string | null>(search.viewingId || null);
   
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
